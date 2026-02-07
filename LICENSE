@@ -1,0 +1,89 @@
+THE FOUNDRY — PROPRIETARY SOFTWARE LICENSE
+Copyright (c) 2026 Hermes Lekkas. All rights reserved.
+
+================================================================================
+
+1. DEFINITIONS
+
+   "Software" refers to The Foundry, including all source code, documentation,
+   configuration files, assets, and any accompanying materials in this
+   repository.
+
+   "Author" refers to Hermes Lekkas, the sole copyright holder.
+
+   "You" refers to any individual who obtains a copy of the Software.
+
+2. GRANT OF LICENSE
+
+   Subject to the terms of this license, the Author grants You a limited,
+   non-exclusive, non-transferable, revocable license to:
+
+   (a) Install and run the Software on devices You own, strictly for personal
+       and non-commercial use.
+
+   (b) View and modify the source code for personal learning, experimentation,
+       or private use only.
+
+3. RESTRICTIONS
+
+   Unless You have received prior written permission from the Author, You
+   may NOT:
+
+   (a) REDISTRIBUTE — Copy, share, publish, upload, mirror, fork (publicly),
+       or otherwise distribute the Software or any derivative works, in whole
+       or in part, in any form or medium.
+
+   (b) COMMERCIAL USE — Use the Software, or any output it produces, for any
+       commercial purpose, including but not limited to: selling, licensing,
+       offering as a service (SaaS), incorporating into a product, or using
+       within a revenue-generating business operation.
+
+   (c) SUBLICENSE — Grant, transfer, or assign any rights under this license
+       to any third party.
+
+   (d) REMOVE NOTICES — Remove, alter, or obscure any copyright notices,
+       license headers, or attribution contained in the Software.
+
+   (e) CLAIM OWNERSHIP — Represent the Software, or any substantial portion
+       of it, as Your own original work.
+
+4. INTELLECTUAL PROPERTY
+
+   All rights, title, and interest in the Software, including all intellectual
+   property rights, remain exclusively with the Author. This license does not
+   convey any ownership rights to You.
+
+5. TERMINATION
+
+   This license is effective until terminated. It terminates automatically and
+   immediately if You violate any of its terms. Upon termination, You must
+   destroy all copies of the Software in Your possession.
+
+6. DISCLAIMER OF WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. THE AUTHOR MAKES NO
+   GUARANTEES THAT THE SOFTWARE WILL BE ERROR-FREE, UNINTERRUPTED, OR SUITABLE
+   FOR ANY PARTICULAR PURPOSE.
+
+7. LIMITATION OF LIABILITY
+
+   IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING BUT NOT LIMITED TO
+   LOSS OF DATA, LOSS OF PROFITS, OR BUSINESS INTERRUPTION) ARISING OUT OF THE
+   USE OR INABILITY TO USE THE SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+   SUCH DAMAGES.
+
+8. GOVERNING LAW
+
+   This license shall be governed by and construed in accordance with
+   applicable law, without regard to conflict of law principles.
+
+9. CONTACT
+
+   For licensing inquiries, commercial use requests, or permission to
+   redistribute, contact the Author directly via the repository at:
+   https://github.com/Hermes-Lekkas/Foundry
+
+================================================================================
