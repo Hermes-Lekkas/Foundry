@@ -275,6 +275,50 @@ def _mask_key(key: str) -> str:
     return f"{key[:4]}...{key[-4:]}"
 
 
+@router.post("/teacher/test")
+async def test_teacher_connection(config: TeacherConfig) -> dict:
+    """Test the teacher configuration by making a simple API call."""
+    from foundry.data_engine.teachers.api_teacher import APITeacher
+    from foundry.data_engine.teachers.base import Message
+    
+    # Get API key from request or environment
+    api_key = config.api_key.get_secret_value() if config.api_key else None
+    
+    try:
+        teacher = APITeacher(
+            provider=config.provider,
+            model=config.model,
+            api_key=api_key,
+            base_url=config.base_url,
+        )
+        
+        # Make a simple test request
+        response = await teacher.generate(
+            [Message(role="user", content="Say 'OK' if you can hear me.")],
+            temperature=0.1,
+            max_tokens=10,
+        )
+        
+        await teacher.close()
+        
+        return {
+            "status": "success",
+            "message": "Teacher connection successful",
+            "provider": config.provider,
+            "model": config.model,
+            "response_preview": response.content[:100] if response.content else "No response",
+            "usage": response.usage,
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Teacher connection failed: {str(e)}",
+            "provider": config.provider,
+            "model": config.model,
+        }
+
+
 def _update_env_file(updates: list[str]) -> None:
     """Update or add entries to the .env file.
     

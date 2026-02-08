@@ -5,9 +5,9 @@
 // See LICENSE file for full terms.
 
 import { useEffect, useState } from 'react'
-import { 
-  CloudArrowDownIcon, 
-  CheckCircleIcon, 
+import {
+  CloudArrowDownIcon,
+  CheckCircleIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
   CpuChipIcon,
@@ -47,12 +47,12 @@ export default function ModelsPage() {
   const [sizes, setSizes] = useState<{ value: string; label: string; vram_range: string }[]>([])
   const [tags, setTags] = useState<string[]>([])
   const [keyStatus, setKeyStatus] = useState<Record<string, unknown>[]>([])
-  
+
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSize, setSelectedSize] = useState('')
   const [selectedTag, setSelectedTag] = useState('')
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
-  
+
   // BYOK State
   const [activeTab, setActiveTab] = useState<'models' | 'byok'>('models')
   const [selectedProvider, setSelectedProvider] = useState('')
@@ -82,14 +82,14 @@ export default function ModelsPage() {
         api.getCurrentTeacher(),
         api.getCurrentStudent(),
       ])
-      
+
       // Set teacher config
       const teacherData = teacher as { provider: string; model: string }
       if (teacherData.provider) {
         setSelectedProvider(teacherData.provider)
         setSelectedTeacherModel(teacherData.model)
       }
-      
+
       // Set student config
       const studentData = student as { model_id: string }
       if (studentData.model_id) {
@@ -106,9 +106,9 @@ export default function ModelsPage() {
       if (selectedSize) params.size = selectedSize
       if (selectedTag) params.tag = selectedTag
       if (searchQuery) params.search = searchQuery
-      
+
       const data = await api.getModelCatalog(params)
-      setModels(data as ModelInfo[])
+      setModels(data as unknown as ModelInfo[])
     } catch {
       toast.error('Failed to load model catalog')
     }
@@ -120,8 +120,8 @@ export default function ModelsPage() {
         api.getModelSizes(),
         api.getModelTags(),
       ])
-      setSizes(sizesData as { value: string; label: string; vram_range: string }[])
-      setTags(tagsData as string[])
+      setSizes(sizesData)
+      setTags(tagsData)
     } catch {
       // Silent fail for filters
     }
@@ -139,7 +139,7 @@ export default function ModelsPage() {
   const loadProviders = async () => {
     try {
       const data = await api.getTeacherProviders()
-      setProviders(data as ProviderInfo[])
+      setProviders(data as unknown as ProviderInfo[])
     } catch {
       // Silent fail
     }
@@ -162,7 +162,7 @@ export default function ModelsPage() {
       toast.error('Please select a provider and model')
       return
     }
-    
+
     try {
       await api.configureTeacher({
         provider: selectedProvider,
@@ -176,12 +176,47 @@ export default function ModelsPage() {
     }
   }
 
+  const [isTestingTeacher, setIsTestingTeacher] = useState(false)
+  const [testResult, setTestResult] = useState<{ status: string; message: string } | null>(null)
+
+  const handleTestTeacher = async () => {
+    if (!selectedProvider || !selectedTeacherModel) {
+      toast.error('Please select a provider and model first')
+      return
+    }
+
+    setIsTestingTeacher(true)
+    setTestResult(null)
+
+    try {
+      const result = await api.testTeacher({
+        provider: selectedProvider,
+        model: selectedTeacherModel,
+        api_key: apiKey || undefined,
+      }) as { status: string; message: string; response_preview?: string }
+
+      setTestResult(result)
+
+      if (result.status === 'success') {
+        toast.success(`Teacher test successful! Response: "${result.response_preview}"`)
+      } else {
+        toast.error(`Teacher test failed: ${result.message}`)
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      setTestResult({ status: 'error', message: errorMsg })
+      toast.error(`Test failed: ${errorMsg}`)
+    } finally {
+      setIsTestingTeacher(false)
+    }
+  }
+
   const handleConfigureStudent = async () => {
     if (!studentModel) {
       toast.error('Please select a student model')
       return
     }
-    
+
     try {
       await api.configureStudent({
         model_id: studentModel,
@@ -199,7 +234,7 @@ export default function ModelsPage() {
       toast.error('Please enter a HuggingFace token')
       return
     }
-    
+
     try {
       await api.setHuggingFaceToken(hfToken)
       toast.success('HuggingFace token saved')
@@ -208,6 +243,25 @@ export default function ModelsPage() {
     } catch (err) {
       toast.error(`Failed to save token: ${err instanceof Error ? err.message : 'Unknown error'}`)
     }
+  }
+
+  // Helper functions to avoid nested ternaries
+  const getDownloadButtonClass = (isDownloaded: boolean, isDownloading: boolean): string => {
+    if (isDownloaded) return 'bg-foundry-success/20 text-foundry-success cursor-default'
+    if (isDownloading) return 'bg-foundry-primary/50 text-white cursor-wait'
+    return 'bg-foundry-primary hover:bg-foundry-primary/80 text-white'
+  }
+
+  const getDownloadButtonText = (isDownloaded: boolean, isDownloading: boolean): string => {
+    if (isDownloaded) return 'Downloaded'
+    if (isDownloading) return 'Queuing...'
+    return 'Download'
+  }
+
+  const getApiKeyPlaceholder = (providerId: string): string => {
+    if (providerId === 'anthropic') return 'sk-ant-...'
+    if (providerId === 'openai') return 'sk-...'
+    return 'API key...'
   }
 
   const selectedProviderInfo = providers.find(p => p.id === selectedProvider)
@@ -224,22 +278,20 @@ export default function ModelsPage() {
         <div className="flex gap-2">
           <button
             onClick={() => setActiveTab('models')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'models'
-                ? 'bg-foundry-primary text-white'
-                : 'bg-glass-100 text-gray-400 hover:text-white'
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'models'
+              ? 'bg-foundry-primary text-white'
+              : 'bg-glass-100 text-gray-400 hover:text-white'
+              }`}
           >
             <CloudArrowDownIcon className="w-4 h-4 inline mr-2" />
             Download Models
           </button>
           <button
             onClick={() => setActiveTab('byok')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === 'byok'
-                ? 'bg-foundry-primary text-white'
-                : 'bg-glass-100 text-gray-400 hover:text-white'
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'byok'
+              ? 'bg-foundry-primary text-white'
+              : 'bg-glass-100 text-gray-400 hover:text-white'
+              }`}
           >
             <KeyIcon className="w-4 h-4 inline mr-2" />
             BYOK Config
@@ -315,11 +367,11 @@ export default function ModelsPage() {
                     <CheckCircleIcon className="w-5 h-5 text-foundry-success" />
                   )}
                 </div>
-                
+
                 <p className="text-sm text-gray-400 mb-4 line-clamp-2">
                   {model.description}
                 </p>
-                
+
                 <div className="flex flex-wrap gap-2 mb-4">
                   <span className="px-2 py-1 bg-foundry-primary/20 text-foundry-primary text-xs rounded-full">
                     {model.params}
@@ -337,23 +389,13 @@ export default function ModelsPage() {
                     </span>
                   ))}
                 </div>
-                
+
                 <button
                   onClick={() => handleDownload(model.id)}
                   disabled={downloadingId === model.id || model.is_downloaded}
-                  className={`w-full py-2 rounded-lg font-medium text-sm transition-colors ${
-                    model.is_downloaded
-                      ? 'bg-foundry-success/20 text-foundry-success cursor-default'
-                      : downloadingId === model.id
-                      ? 'bg-foundry-primary/50 text-white cursor-wait'
-                      : 'bg-foundry-primary hover:bg-foundry-primary/80 text-white'
-                  }`}
+                  className={`w-full py-2 rounded-lg font-medium text-sm transition-colors ${getDownloadButtonClass(model.is_downloaded, downloadingId === model.id)}`}
                 >
-                  {model.is_downloaded
-                    ? 'Downloaded'
-                    : downloadingId === model.id
-                    ? 'Queuing...'
-                    : 'Download'}
+                  {getDownloadButtonText(model.is_downloaded, downloadingId === model.id)}
                 </button>
               </GlassCard>
             ))}
@@ -397,7 +439,7 @@ export default function ModelsPage() {
                     <h4 className="text-sm font-medium text-gray-400 mb-3">All Available Providers</h4>
                     <div className="space-y-3">
                       {providers.map((provider) => (
-                        <div 
+                        <div
                           key={provider.id}
                           className="p-3 bg-glass-50 rounded-lg border border-glass-200"
                         >
@@ -440,13 +482,20 @@ export default function ModelsPage() {
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                       {selectedProviderInfo.models.map((model) => (
                         <div
+                          role="button"
+                          tabIndex={0}
                           key={model.id}
                           onClick={() => setSelectedTeacherModel(model.id)}
-                          className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                            selectedTeacherModel === model.id
-                              ? 'bg-foundry-primary/20 border border-foundry-primary/50'
-                              : 'bg-glass-50 border border-glass-200 hover:bg-glass-100'
-                          }`}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              setSelectedTeacherModel(model.id)
+                            }
+                          }}
+                          className={`p-3 rounded-lg cursor-pointer transition-colors ${selectedTeacherModel === model.id
+                            ? 'bg-foundry-primary/20 border border-foundry-primary/50'
+                            : 'bg-glass-50 border border-glass-200 hover:bg-glass-100'
+                            }`}
                         >
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium text-white">{model.name}</span>
@@ -471,7 +520,7 @@ export default function ModelsPage() {
                         type="password"
                         value={apiKey}
                         onChange={(e) => setApiKey(e.target.value)}
-                        placeholder={selectedProviderInfo.id === 'anthropic' ? 'sk-ant-...' : selectedProviderInfo.id === 'openai' ? 'sk-...' : 'API key...'}
+                        placeholder={getApiKeyPlaceholder(selectedProviderInfo.id)}
                         className="w-full px-4 py-2 bg-foundry-surface/50 rounded-lg border border-glass-200 text-white placeholder-gray-500 focus:outline-none focus:border-foundry-primary/50"
                       />
                       <p className="text-xs text-gray-500 mt-1">
@@ -483,16 +532,56 @@ export default function ModelsPage() {
                   <button
                     onClick={handleConfigureTeacher}
                     disabled={!selectedTeacherModel}
-                    className={`w-full py-2 rounded-lg text-white font-medium transition-colors ${
-                      selectedTeacherModel
-                        ? 'bg-foundry-primary hover:bg-foundry-primary/80'
-                        : 'bg-gray-600 cursor-not-allowed'
-                    }`}
+                    className={`w-full py-2 rounded-lg text-white font-medium transition-colors ${selectedTeacherModel
+                      ? 'bg-foundry-primary hover:bg-foundry-primary/80'
+                      : 'bg-gray-600 cursor-not-allowed'
+                      }`}
                   >
-                    {selectedTeacherModel 
+                    {selectedTeacherModel
                       ? `Save: ${selectedProviderInfo.models.find(m => m.id === selectedTeacherModel)?.name || selectedTeacherModel}`
                       : 'Select a model above'}
                   </button>
+
+                  {/* Test Connection Button */}
+                  {selectedTeacherModel && (
+                    <button
+                      onClick={handleTestTeacher}
+                      disabled={isTestingTeacher}
+                      className={`w-full py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${isTestingTeacher
+                        ? 'bg-foundry-accent/50 text-white cursor-wait'
+                        : 'bg-foundry-accent hover:bg-foundry-accent/80 text-white'
+                        }`}
+                    >
+                      {isTestingTeacher ? (
+                        <>
+                          <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                          Testing connection...
+                        </>
+                      ) : (
+                        'Test Connection'
+                      )}
+                    </button>
+                  )}
+
+                  {/* Test Result */}
+                  {testResult && (
+                    <div className={`p-3 rounded-lg text-sm ${testResult.status === 'success'
+                      ? 'bg-foundry-success/10 border border-foundry-success/30 text-foundry-success'
+                      : 'bg-foundry-error/10 border border-foundry-error/30 text-foundry-error'
+                      }`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        {testResult.status === 'success' ? (
+                          <CheckCircleIcon className="w-4 h-4" />
+                        ) : (
+                          <InformationCircleIcon className="w-4 h-4" />
+                        )}
+                        <span className="font-medium">
+                          {testResult.status === 'success' ? 'Connection Successful' : 'Connection Failed'}
+                        </span>
+                      </div>
+                      <p className="text-xs opacity-90">{testResult.message}</p>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -557,7 +646,7 @@ export default function ModelsPage() {
                   ))
                 )}
               </div>
-              
+
               {/* Current Configuration Summary */}
               <div className="mt-4 p-3 bg-foundry-primary/5 rounded-lg border border-foundry-primary/20">
                 <h5 className="text-xs font-medium text-foundry-primary mb-2">Active Configuration</h5>

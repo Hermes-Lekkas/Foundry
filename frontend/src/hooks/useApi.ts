@@ -63,6 +63,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  testTeacher: (body: Record<string, unknown>) =>
+    request<Record<string, unknown>>('/keys/teacher/test', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   getCurrentStudent: () => request<Record<string, unknown>>('/keys/student/current'),
   configureStudent: (body: Record<string, unknown>) =>
     request<Record<string, unknown>>('/keys/student/configure', {
