@@ -1,6 +1,8 @@
-// Copyright (c) 2026 Hermes Lekkas. All rights reserved.
-// PROPRIETARY AND CONFIDENTIAL. See LICENSE file for details.
-// Unauthorized copying, redistribution, or commercial use is strictly prohibited.
+// The Foundry - Open Core LLM Training Ecosystem
+// Copyright (c) 2026 Hermes Lekkas
+//
+// This file is part of the open-core release (MIT License).
+// See LICENSE file for full terms.
 
 import { Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'

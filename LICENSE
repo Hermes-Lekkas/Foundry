@@ -1,89 +1,131 @@
-THE FOUNDRY — PROPRIETARY SOFTWARE LICENSE
+#The Foundry - Dual Licensing
+
+## Overview
+
+The Foundry uses an **open-core** licensing model. This means:
+
+- **Core infrastructure** is open-source (MIT License) - you can modify, redistribute, contribute
+- **Proprietary modules** are source-available (Visible but restricted) - you can view and use, but not modify/redistribute
+
+This gives you full transparency while protecting the project's unique innovations.
+
+---
+
+## Open Source Components (MIT License)
+
+The following components are licensed under the MIT License:
+
+```
+foundry/orchestrator/       # API server, routes, state management
+foundry/config/             # Hardware detection, settings
+foundry/training_core/      # Basic training backends (SFT, DPO, GRPO)
+foundry/evaluator/          # Basic benchmarks and rule judges
+foundry/data_engine/        # Dataset storage, basic filters
+foundry/sandbox/            # Sandboxed execution
+foundry/shared/             # Shared utilities
+frontend/                   # Complete UI (React + Vite)
+tests/                      # Test suite
+```
+
+MIT License terms apply (see LICENSE-MIT below).
+
+---
+
+## Proprietary Components (Source-Available)
+
+The following components are proprietary and provided under a source-available license:
+
+```
+foundry/reflection/         # SDCR: Self-Directed Counterfactual Reflection
+foundry/models/dna.py       # Model DNA / Lineage tracking system
+foundry/security/           # Multi-layer security engine
+foundry/data_engine/pipelines/rl_cai.py  # RL Constitutional AI
+foundry/data_engine/pipelines/sl_cai.py  # SL Constitutional AI
+foundry/data_engine/pipelines/trajectory.py  # Agentic trajectory synthesis
+foundry/evaluator/judges/prometheus.py   # Prometheus judge
+foundry/evaluator/judges/llm_judge.py    # Advanced LLM judges
+```
+
+### Proprietary License Terms:
+
+1. **Visible**: You can read, study, and understand the code
+2. **Usable**: You can use the software for personal and commercial purposes
+3. **Non-Modifiable**: You cannot modify these files
+4. **Non-Distributable**: You cannot redistribute these files
+5. **Non-Sublicensable**: You cannot grant rights to others
+
+See LICENSE-PROPRIETARY for full terms.
+
+---
+
+## Why This Model?
+
+1. **Transparency**: You can audit all code, proprietary or not
+2. **Sustainability**: Revenue from proprietary features funds open-source development
+3. **Innovation Protection**: Core differentiators (SDCR, DNA) remain protected
+4. **Community**: Anyone can contribute to and benefit from the open-core infrastructure
+
+---
+
+## LICENSE-MIT
+
+```
+MIT License
+
+Copyright (c) 2026 Hermes Lekkas
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+```
+
+---
+
+## LICENSE-PROPRIETARY
+
+```
+THE FOUNDRY - PROPRIETARY SOFTWARE LICENSE
 Copyright (c) 2026 Hermes Lekkas. All rights reserved.
 
-================================================================================
+1. GRANT OF LICENSE
+   Subject to the terms of this License, Hermes Lekkas grants you a limited,
+   non-exclusive, non-transferable license to:
+   a) Use the Proprietary Components for personal or commercial purposes
+   b) View and study the source code for educational purposes
+   c) Integrate with the Proprietary Components via public APIs
 
-1. DEFINITIONS
+2. RESTRICTIONS
+   You may NOT:
+   a) Modify, adapt, or create derivative works of the Proprietary Components
+   b) Distribute, sublicense, or transfer the Proprietary Components
+   c) Reverse engineer, decompile, or disassemble the Proprietary Components
+   d) Remove or alter any proprietary notices or labels
+   e) Use the Proprietary Components to create competing products
 
-   "Software" refers to The Foundry, including all source code, documentation,
-   configuration files, assets, and any accompanying materials in this
-   repository.
+3. INTELLECTUAL PROPERTY
+   All intellectual property rights in the Proprietary Components remain
+   the exclusive property of Hermes Lekkas.
 
-   "Author" refers to Hermes Lekkas, the sole copyright holder.
+4. TERMINATION
+   This license automatically terminates if you violate any terms.
+   Upon termination, you must cease all use and destroy all copies.
 
-   "You" refers to any individual who obtains a copy of the Software.
+5. DISCLAIMER
+   THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
+```
 
-2. GRANT OF LICENSE
+---
 
-   Subject to the terms of this license, the Author grants You a limited,
-   non-exclusive, non-transferable, revocable license to:
+## Questions?
 
-   (a) Install and run the Software on devices You own, strictly for personal
-       and non-commercial use.
-
-   (b) View and modify the source code for personal learning, experimentation,
-       or private use only.
-
-3. RESTRICTIONS
-
-   Unless You have received prior written permission from the Author, You
-   may NOT:
-
-   (a) REDISTRIBUTE — Copy, share, publish, upload, mirror, fork (publicly),
-       or otherwise distribute the Software or any derivative works, in whole
-       or in part, in any form or medium.
-
-   (b) COMMERCIAL USE — Use the Software, or any output it produces, for any
-       commercial purpose, including but not limited to: selling, licensing,
-       offering as a service (SaaS), incorporating into a product, or using
-       within a revenue-generating business operation.
-
-   (c) SUBLICENSE — Grant, transfer, or assign any rights under this license
-       to any third party.
-
-   (d) REMOVE NOTICES — Remove, alter, or obscure any copyright notices,
-       license headers, or attribution contained in the Software.
-
-   (e) CLAIM OWNERSHIP — Represent the Software, or any substantial portion
-       of it, as Your own original work.
-
-4. INTELLECTUAL PROPERTY
-
-   All rights, title, and interest in the Software, including all intellectual
-   property rights, remain exclusively with the Author. This license does not
-   convey any ownership rights to You.
-
-5. TERMINATION
-
-   This license is effective until terminated. It terminates automatically and
-   immediately if You violate any of its terms. Upon termination, You must
-   destroy all copies of the Software in Your possession.
-
-6. DISCLAIMER OF WARRANTY
-
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-   FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. THE AUTHOR MAKES NO
-   GUARANTEES THAT THE SOFTWARE WILL BE ERROR-FREE, UNINTERRUPTED, OR SUITABLE
-   FOR ANY PARTICULAR PURPOSE.
-
-7. LIMITATION OF LIABILITY
-
-   IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING BUT NOT LIMITED TO
-   LOSS OF DATA, LOSS OF PROFITS, OR BUSINESS INTERRUPTION) ARISING OUT OF THE
-   USE OR INABILITY TO USE THE SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-   SUCH DAMAGES.
-
-8. GOVERNING LAW
-
-   This license shall be governed by and construed in accordance with
-   applicable law, without regard to conflict of law principles.
-
-9. CONTACT
-
-   For licensing inquiries, commercial use requests, or permission to
-   redistribute, contact the Author directly via the repository at:
-   https://github.com/Hermes-Lekkas/Foundry
-
-================================================================================
+Contact: hermeslekkasdev@gmail.com

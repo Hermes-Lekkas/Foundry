@@ -1,42 +1,85 @@
-// Copyright (c) 2026 Hermes Lekkas. All rights reserved.
-// PROPRIETARY AND CONFIDENTIAL. See LICENSE file for details.
-// Unauthorized copying, redistribution, or commercial use is strictly prohibited.
+// The Foundry - Open Core LLM Training Ecosystem
+// Copyright (c) 2026 Hermes Lekkas
+//
+// This file is part of the open-core release (MIT License).
+// See LICENSE file for full terms.
 
 import { useEffect, useRef } from 'react'
 import { useFoundryStore } from '../stores/foundryStore'
 
 export function useWebSocket() {
   const wsRef = useRef<WebSocket | null>(null)
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const reconnectAttemptsRef = useRef(0)
+  const isIntentionalCloseRef = useRef(false)
   const store = useFoundryStore()
 
   useEffect(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const wsUrl = `${protocol}//${window.location.host}/ws`
+    const MAX_RECONNECT_ATTEMPTS = 5
+    const RECONNECT_DELAY = 3000
 
     function connect() {
-      const ws = new WebSocket(wsUrl)
-      wsRef.current = ws
-
-      ws.onopen = () => {
-        store.setConnected(true)
+      // Clear any pending reconnection timeout
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+        reconnectTimeoutRef.current = null
       }
 
-      ws.onclose = () => {
-        store.setConnected(false)
-        // Reconnect after 3 seconds
-        setTimeout(connect, 3000)
+      // Don't reconnect if already connected or connecting
+      if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) {
+        return
       }
 
-      ws.onerror = () => {
-        ws.close()
-      }
+      // Reset intentional close flag for new connection
+      isIntentionalCloseRef.current = false
 
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data)
-          handleEvent(msg)
-        } catch {
-          // Ignore malformed messages
+      try {
+        const ws = new WebSocket(wsUrl)
+        wsRef.current = ws
+
+        ws.onopen = () => {
+          reconnectAttemptsRef.current = 0
+          store.setConnected(true)
+        }
+
+        ws.onclose = () => {
+          store.setConnected(false)
+          wsRef.current = null
+
+          // Don't reconnect if this was an intentional close (cleanup)
+          if (isIntentionalCloseRef.current) {
+            return
+          }
+
+          // Attempt reconnection with exponential backoff
+          if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
+            reconnectAttemptsRef.current++
+            const delay = RECONNECT_DELAY * Math.pow(2, reconnectAttemptsRef.current - 1)
+            reconnectTimeoutRef.current = setTimeout(connect, Math.min(delay, 30000))
+          }
+        }
+
+        ws.onerror = () => {
+          // Don't log errors - onclose will handle reconnection
+          ws.close()
+        }
+
+        ws.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data)
+            handleEvent(msg)
+          } catch {
+            // Ignore malformed messages
+          }
+        }
+      } catch {
+        // Connection failed, schedule reconnect
+        wsRef.current = null
+        if (!isIntentionalCloseRef.current && reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
+          reconnectAttemptsRef.current++
+          reconnectTimeoutRef.current = setTimeout(connect, RECONNECT_DELAY)
         }
       }
     }
@@ -109,7 +152,20 @@ export function useWebSocket() {
 
     return () => {
       clearInterval(pingInterval)
-      wsRef.current?.close()
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+        reconnectTimeoutRef.current = null
+      }
+      
+      // Mark as intentional close to prevent reconnection attempts
+      isIntentionalCloseRef.current = true
+      
+      // Only close if the connection is fully OPEN
+      // Don't close CONNECTING sockets - let them fail naturally
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.close()
+      }
+      wsRef.current = null
     }
   }, [])
 }

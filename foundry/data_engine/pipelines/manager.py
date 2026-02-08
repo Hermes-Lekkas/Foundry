@@ -1,8 +1,8 @@
-# THE FOUNDRY — PROPRIETARY SOFTWARE LICENSE
-# Copyright (c) 2026 Hermes Lekkas. All rights reserved.
-#
-# This software is provided under a proprietary license.
-# See the LICENSE file for details.
+# The Foundry - Open Core LLM Training Ecosystem
+# Copyright (c) 2026 Hermes Lekkas
+# 
+# This file is part of the open-core release (MIT License).
+# See LICENSE file for full terms.
 
 """Pipeline Manager — Coordinates data synthesis across pipelines."""
 
@@ -42,6 +42,8 @@ async def run_synthesis(
     num_samples: int = 100,
     output_dir: Path | None = None,
     pipeline_type: str = "trajectory",
+    teacher_provider: str | None = None,
+    teacher_model: str | None = None,
 ) -> Path:
     """Run data synthesis from CLI."""
     from foundry.config.settings import get_settings
@@ -51,7 +53,7 @@ async def run_synthesis(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     constitution = Constitution.from_yaml(constitution_path)
-    teacher = _create_teacher()
+    teacher = _create_teacher(provider=teacher_provider, model=teacher_model)
 
     # Generate seed prompts
     prompts = await _generate_seed_prompts(teacher, constitution, num_samples)

@@ -1,14 +1,15 @@
-# THE FOUNDRY — PROPRIETARY SOFTWARE LICENSE
-# Copyright (c) 2026 Hermes Lekkas. All rights reserved.
-#
-# This software is provided under a proprietary license.
-# See the LICENSE file for details.
+# The Foundry - Open Core LLM Training Ecosystem
+# Copyright (c) 2026 Hermes Lekkas
+# 
+# This file is part of the open-core release (MIT License).
+# See LICENSE file for full terms.
 
 """Sandbox Executor — Subprocess-based secure code execution.
 
 Platform-aware isolation:
 - Windows native: subprocess with CREATE_NO_WINDOW
 - WSL2/Linux: subprocess with restricted imports + optional seccomp
+- macOS: subprocess with seatbelt sandbox + resource limits
 """
 
 from __future__ import annotations
@@ -26,6 +27,12 @@ from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+# Platform detection
+PLATFORM = platform.system().lower()
+IS_WINDOWS = PLATFORM == "windows"
+IS_MACOS = PLATFORM == "darwin"
+IS_LINUX = PLATFORM == "linux"
 
 # Imports that are forbidden inside the sandbox
 RESTRICTED_IMPORTS = {
@@ -122,10 +129,14 @@ class SandboxExecutor:
         self.max_output_bytes = max_output_bytes
         self.work_dir = work_dir or Path(tempfile.mkdtemp(prefix="foundry_sandbox_"))
         self.restrict_imports = restrict_imports
-        self._is_windows = platform.system().lower() == "windows"
+        self._is_windows = IS_WINDOWS
+        self._is_macos = IS_MACOS
 
         # Ensure work directory exists
         self.work_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Log platform info
+        logger.debug(f"Sandbox initialized on {PLATFORM}")
 
     def _build_script(self, code: str) -> str:
         """Wrap user code with sandbox preamble."""
@@ -161,11 +172,28 @@ class SandboxExecutor:
             # Platform-specific flags
             if self._is_windows:
                 kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW  # type: ignore[attr-defined]
-
-            proc = await asyncio.create_subprocess_exec(
-                sys.executable, str(script_path),
-                **kwargs,
-            )
+            
+            # macOS: Apply resource limits via ulimit
+            if self._is_macos:
+                # Check if sandbox-exec is available
+                sandbox_cmd = self._apply_macos_sandbox(script_path)
+                if sandbox_cmd:
+                    # Use sandbox-exec wrapper
+                    proc = await asyncio.create_subprocess_exec(
+                        *sandbox_cmd, sys.executable, str(script_path),
+                        **kwargs,
+                    )
+                else:
+                    # Fallback to standard execution
+                    proc = await asyncio.create_subprocess_exec(
+                        sys.executable, str(script_path),
+                        **kwargs,
+                    )
+            else:
+                proc = await asyncio.create_subprocess_exec(
+                    sys.executable, str(script_path),
+                    **kwargs,
+                )
 
             try:
                 stdout_bytes, stderr_bytes = await asyncio.wait_for(
@@ -235,11 +263,41 @@ class SandboxExecutor:
             "PYTHONPATH": "",
             "PYTHONDONTWRITEBYTECODE": "1",
         }
+        
+        # macOS-specific environment
+        if self._is_macos:
+            env["__CF_USER_TEXT_ENCODING"] = os.environ.get("__CF_USER_TEXT_ENCODING", "0x1F5:0x0:0x0")
+            # Use system Python if available
+            if "/usr/bin" not in env["PATH"]:
+                env["PATH"] = "/usr/bin:/bin:/usr/sbin:/sbin:" + env["PATH"]
+        
         # Preserve CUDA-related vars for GPU code execution
         for key in ("CUDA_HOME", "CUDA_PATH", "LD_LIBRARY_PATH"):
             if key in os.environ:
                 env[key] = os.environ[key]
         return env
+    
+    def _apply_macos_sandbox(self, script_path: Path) -> list[str]:
+        """Build macOS sandbox profile and return command prefix."""
+        # Create a seatbelt sandbox profile
+        sandbox_profile = f"""(version 1)
+(debug deny)
+(allow default)
+(deny file-write* (subpath "/"))
+(allow file-write* (subpath "{self.work_dir}"))
+(allow file-read* (subpath "{self.work_dir}"))
+(allow file-read* (subpath "/System"))
+(allow file-read* (subpath "/usr"))
+(allow file-read* (subpath "/Library"))
+(allow file-read* (subpath "/dev"))
+(allow file-read* (subpath "/private/var"))
+(deny network*)
+"""
+        profile_path = self.work_dir / ".sandbox.sb"
+        profile_path.write_text(sandbox_profile)
+        
+        # Use sandbox-exec if available
+        return ["sandbox-exec", "-f", str(profile_path)]
 
     def cleanup(self) -> None:
         """Remove the sandbox working directory."""

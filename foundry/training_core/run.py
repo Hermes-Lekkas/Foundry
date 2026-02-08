@@ -1,8 +1,8 @@
-# THE FOUNDRY — PROPRIETARY SOFTWARE LICENSE
-# Copyright (c) 2026 Hermes Lekkas. All rights reserved.
-#
-# This software is provided under a proprietary license.
-# See the LICENSE file for details.
+# The Foundry - Open Core LLM Training Ecosystem
+# Copyright (c) 2026 Hermes Lekkas
+# 
+# This file is part of the open-core release (MIT License).
+# See LICENSE file for full terms.
 
 """Training Run — Entry point for training jobs from CLI and API."""
 
@@ -18,11 +18,11 @@ import yaml
 logger = logging.getLogger(__name__)
 
 
-async def run_training(config_path: Path) -> dict[str, Any]:
+async def run_training(config_path: Path, model_override: str | None = None) -> dict[str, Any]:
     """Run a training job from a YAML config file (CLI entry point)."""
     config = yaml.safe_load(config_path.read_text())
 
-    model_name = config["model_name"]
+    model_name = model_override or config["model_name"]
     trainer_type = config.get("trainer_type", "sft")
     dataset_path = config.get("dataset_path")
 

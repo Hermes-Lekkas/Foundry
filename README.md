@@ -1,11 +1,12 @@
-# <img src="frontend/public/foundry.svg" width="28" align="top" /> The Foundry
+# <img src="frontend/public/The_Foundry.svg" width="28" align="top" /> The Foundry
 
 ### Local LLM Training Ecosystem
 
 **Train your own AI models with Constitutional AI, verifiable tool-use trajectories, and GRPO reasoning — all on your hardware.**
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
-[![License: Proprietary](https://img.shields.io/badge/license-Proprietary-red)](LICENSE)
+[![License: Open Core](https://img.shields.io/badge/license-Open%20Core-blue)](LICENSE)
+[![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen)](CONTRIBUTIONS.md)
 [![FastAPI](https://img.shields.io/badge/api-FastAPI-009688)](https://fastapi.tiangolo.com)
 [![React 18](https://img.shields.io/badge/ui-React%2018-61DAFB)](https://react.dev)
 
@@ -126,6 +127,44 @@ npm run dev
 # UI at http://localhost:5173
 ```
 
+### Teacher & Student Model Selection
+
+The Foundry uses a **Teacher-Student** architecture:
+
+| Role | Purpose | Where Configured |
+|------|---------|------------------|
+| **Teacher** | Generates training data via Constitutional AI | `.env` file or `--teacher` CLI flag |
+| **Student** | The model being trained | Training config YAML or `--model` CLI flag |
+
+#### Teacher Modes
+
+**Online (API)** — Highest quality, requires API key:
+```bash
+# Configure in .env
+FOUNDRY_TEACHER_PROVIDER=anthropic
+FOUNDRY_TEACHER_MODEL=claude-sonnet-4-5-20250929
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+**Offline (Local)** — Private, runs on your GPU:
+```bash
+# Configure in .env
+FOUNDRY_TEACHER_PROVIDER=local
+FOUNDRY_TEACHER_MODEL=unsloth/Qwen2.5-1.5B-Instruct
+```
+
+**Per-run override:**
+```bash
+python -m foundry synth --teacher local --teacher-model unsloth/Qwen2.5-7B-Instruct ...
+```
+
+#### View/Configure Models
+```bash
+# Show current configuration and available models
+python -m foundry config
+python -m foundry models
+```
+
 ### Generate Training Data
 
 ```bash
@@ -134,6 +173,9 @@ python -m foundry synth --constitution constitutions/agentic.yaml --num-samples 
 
 # SL-CAI (critique & revise)
 python -m foundry synth --constitution constitutions/coding.yaml --num-samples 50
+
+# Use local teacher for privacy
+python -m foundry synth --constitution constitutions/coding.yaml --teacher local --teacher-model unsloth/Qwen2.5-1.5B-Instruct
 ```
 
 ### Profile VRAM & Train
@@ -147,6 +189,9 @@ python -m foundry train --config configs/sft_default.yaml
 
 # Train with GRPO (reasoning verification)
 python -m foundry train --config configs/grpo_reasoning.yaml
+
+# Override student model at runtime
+python -m foundry train --config configs/sft_default.yaml --model unsloth/Qwen2.5-1.5B
 ```
 
 ### Evaluate
@@ -208,6 +253,7 @@ Orchestrator (FastAPI + WebSocket on :8420)
 |-------------|---------|---------|----------------|
 | WSL2 (Ubuntu) | `os.cpu_count()` | subprocess + seccomp | **Recommended** |
 | Linux Native | `os.cpu_count()` | subprocess + seccomp | Optimal |
+| macOS | `os.cpu_count()` | subprocess + seatbelt | Optimal |
 | Native Windows | 1 | subprocess + CREATE_NO_WINDOW | Use WSL2 |
 | Docker | `os.cpu_count()` | Container-in-container | Alternative |
 
@@ -230,20 +276,98 @@ Orchestrator (FastAPI + WebSocket on :8420)
 
 ---
 
+## CLI Commands
+
+```bash
+# Environment & Configuration
+python -m foundry check-env              # Verify GPU, CUDA, WSL2 status
+python -m foundry config                 # View current teacher/student config
+python -m foundry models                 # List recommended models by tier
+
+# Data Synthesis (Teacher generates training data)
+python -m foundry synth --constitution constitutions/coding.yaml --num-samples 100
+python -m foundry synth ... --teacher local --teacher-model unsloth/Qwen2.5-7B-Instruct
+
+# Training (Student learns from generated data)
+python -m foundry profile --model unsloth/Qwen2.5-0.5B
+python -m foundry train --config configs/sft_default.yaml
+python -m foundry train --config configs/sft_default.yaml --model unsloth/Qwen2.5-1.5B
+
+# Evaluation
+python -m foundry eval --model ./checkpoints/run_1
+
+# Server
+python -m foundry serve                  # Start API server
+python -m foundry serve --port 8080      # Custom port
+```
+
+---
+
 ## Tech Stack
 
 **Backend**: Python 3.10+, FastAPI, Pydantic Settings, aiosqlite, Typer (CLI)
 **Training**: Unsloth, TRL (SFT/DPO/GRPO), PEFT, BitsAndBytes, PyTorch
-**Evaluation**: Prometheus 2, LLM-as-Judge, sandbox-backed rewards
+**Evaluation**: Prometheus 2 (proprietary), LLM-as-Judge, sandbox-backed rewards
 **Frontend**: React 18, Vite, Tailwind CSS (glassmorphism), Zustand, Framer Motion, Recharts
-**Sandbox**: Platform-aware subprocess isolation (CREATE_NO_WINDOW / seccomp)
+**Sandbox**: Open-core subprocess isolation + Proprietary multi-layer security engine
+**Reflection**: SDCR (Self-Directed Counterfactual Reflection) — proprietary innovation
 
 ---
 
-## License
+## Contributing
 
-**Proprietary Software.** Copyright (c) 2026 Hermes Lekkas. All rights reserved.
+We welcome contributions! Whether you're fixing bugs, improving documentation, or adding features to the open-core components:
 
-This software is provided for **personal, non-commercial use only**. Redistribution, commercial use, and sublicensing are strictly prohibited without prior written permission from the author.
+📖 **[CONTRIBUTIONS.md](CONTRIBUTIONS.md)** — Guidelines, setup instructions, and how to get started
 
-See [LICENSE](LICENSE) for full terms.
+Key areas where help is welcome:
+- Windows/WSL2 improvements
+- Documentation and tutorials  
+- Test coverage
+- UI/UX enhancements
+- Performance optimizations
+
+---
+
+## License: Open-Core Model
+
+The Foundry uses an **open-core** licensing model — transparent, sustainable, and community-friendly.
+
+### What This Means
+
+- **🔓 Open Source (MIT)**: Core infrastructure is fully open — modify, redistribute, contribute
+- **👁️ Source-Available (Proprietary)**: Unique innovations are visible but protected — you can view, study, and use them, but not modify or redistribute
+
+### Component Breakdown
+
+| Component | License | Status |
+|-----------|---------|--------|
+| `foundry/orchestrator/` | **MIT** | Open for contribution |
+| `foundry/config/` | **MIT** | Open for contribution |
+| `foundry/training_core/` | **MIT** | Open for contribution |
+| `foundry/sandbox/` | **MIT** | Open for contribution |
+| `foundry/evaluator/` (basic) | **MIT** | Open for contribution |
+| `foundry/data_engine/` (basic) | **MIT** | Open for contribution |
+| `frontend/` | **MIT** | Open for contribution |
+| `tests/` | **MIT** | Open for contribution |
+| `foundry/reflection/` (SDCR) | **Proprietary** | Source-available, view-only |
+| `foundry/security/` (Multi-layer) | **Proprietary** | Source-available, view-only |
+| `foundry/models/dna.py` (Lineage) | **Proprietary** | Source-available, view-only |
+| Advanced Constitutional AI | **Proprietary** | Source-available, view-only |
+| Prometheus Judge | **Proprietary** | Source-available, view-only |
+
+### Why This Model?
+
+1. **🧠 Innovation Protection**: SDCR, Model DNA, and the Security Engine represent years of R&D
+2. **🤝 Community**: Anyone can contribute to the open-core infrastructure
+3. **🔍 Transparency**: All code is visible — audit the proprietary modules, trust through verification
+4. **💼 Sustainability**: Proprietary features fund continued open-source development
+
+### Contributing
+
+We actively welcome contributions! See [CONTRIBUTIONS.md](CONTRIBUTIONS.md) for guidelines.
+
+- **MIT files**: Submit PRs freely
+- **Proprietary files**: View and learn, but don't modify
+
+See [LICENSE](LICENSE) for full legal terms.

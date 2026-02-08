@@ -10,6 +10,10 @@
 # ============================================================================
 set -euo pipefail
 
+# Script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 PYTHON_MIN="3.10"
 NODE_MIN="18"
 PORT_API=8420

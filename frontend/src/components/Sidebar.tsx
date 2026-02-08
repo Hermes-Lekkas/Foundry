@@ -1,8 +1,8 @@
-// THE FOUNDRY — PROPRIETARY SOFTWARE LICENSE
-// Copyright (c) 2026 Hermes Lekkas. All rights reserved.
+// The Foundry - Open Core LLM Training Ecosystem
+// Copyright (c) 2026 Hermes Lekkas
 //
-// This software is provided under a proprietary license.
-// See the LICENSE file for details.
+// This file is part of the open-core release (MIT License).
+// See LICENSE file for full terms.
 
 import { NavLink } from 'react-router-dom'
 import { useFoundryStore } from '../stores/foundryStore'

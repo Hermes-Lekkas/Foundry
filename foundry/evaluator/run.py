@@ -1,8 +1,8 @@
-# THE FOUNDRY — PROPRIETARY SOFTWARE LICENSE
-# Copyright (c) 2026 Hermes Lekkas. All rights reserved.
-#
-# This software is provided under a proprietary license.
-# See the LICENSE file for details.
+# The Foundry - Open Core LLM Training Ecosystem
+# Copyright (c) 2026 Hermes Lekkas
+# 
+# This file is part of the open-core release (MIT License).
+# See LICENSE file for full terms.
 
 """Evaluation Run — Entry point for evaluation jobs from CLI and API."""
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 async def run_evaluation(
-    model_path: Path, benchmark: str = "all",
+    model_path: Path, benchmark: str = "all", judge_model: str | None = None,
 ) -> dict[str, Any]:
     """Run evaluation from CLI."""
     from foundry.shared.model_loader import load_model
