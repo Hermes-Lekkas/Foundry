@@ -337,7 +337,11 @@ async def get_model_details(model_id: str) -> ModelInfo:
 
 @router.post("/download", response_model=DownloadResponse)
 async def download_model(request: DownloadRequest) -> DownloadResponse:
-    """Queue a model download."""
+    """Download a model from HuggingFace and optionally set as student/teacher."""
+    import uuid
+    import asyncio
+    from pathlib import Path
+    
     # Verify model exists in catalog
     model = None
     for m in MODEL_CATALOG:
@@ -348,23 +352,182 @@ async def download_model(request: DownloadRequest) -> DownloadResponse:
     if not model:
         raise HTTPException(status_code=404, detail=f"Model {request.model_id} not found in catalog")
     
-    # TODO: Implement actual download logic
-    # For now, return a queued status
-    import uuid
+    job_id = f"dl_{uuid.uuid4().hex[:8]}"
+    
+    # Start download in background
+    asyncio.create_task(_download_model_task(job_id, model, request.cache_dir))
     
     return DownloadResponse(
-        job_id=str(uuid.uuid4()),
-        status="queued",
-        message=f"Download queued for {model.name}. This feature will download from HuggingFace.",
+        job_id=job_id,
+        status="downloading",
+        message=f"Downloading {model.name} from HuggingFace...",
     )
+
+
+async def _download_model_task(job_id: str, model: ModelInfo, cache_dir: str | None = None) -> None:
+    """Background task to download a model."""
+    import os
+    from pathlib import Path
+    
+    try:
+        # Use transformers/huggingface_hub to download
+        from huggingface_hub import snapshot_download
+        from foundry.shared.events import get_event_bus, EventType
+        
+        bus = get_event_bus()
+        
+        # Emit start event
+        await bus.emit(EventType.DATA_SYNTH_START, {
+            "job_id": job_id,
+            "type": "model_download",
+            "model_id": model.id,
+            "model_name": model.name,
+        })
+        
+        # Determine cache directory
+        if cache_dir:
+            local_dir = Path(cache_dir)
+        else:
+            from foundry.config.settings import get_settings
+            settings = get_settings()
+            local_dir = Path(settings.checkpoint_dir) / "models" / model.id.replace("/", "--")
+        
+        local_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Download the model
+        # Note: This runs in a thread pool since snapshot_download is sync
+        import asyncio
+        loop = asyncio.get_event_loop()
+        
+        def do_download():
+            return snapshot_download(
+                repo_id=model.id,
+                local_dir=str(local_dir),
+                local_dir_use_symlinks=False,
+                resume_download=True,
+            )
+        
+        downloaded_path = await loop.run_in_executor(None, do_download)
+        
+        # Emit completion event
+        await bus.emit(EventType.DATA_SYNTH_COMPLETE, {
+            "job_id": job_id,
+            "type": "model_download",
+            "model_id": model.id,
+            "model_name": model.name,
+            "local_path": downloaded_path,
+            "status": "complete",
+        })
+        
+    except Exception as e:
+        from foundry.shared.events import get_event_bus, EventType
+        bus = get_event_bus()
+        await bus.emit(EventType.DATA_SYNTH_COMPLETE, {
+            "job_id": job_id,
+            "type": "model_download",
+            "model_id": model.id,
+            "error": str(e),
+            "status": "failed",
+        })
 
 
 @router.get("/downloaded", response_model=list[ModelInfo])
 async def get_downloaded_models() -> list[ModelInfo]:
     """Get list of locally downloaded models."""
-    # TODO: Implement scan of local cache directory
-    # For now, return empty list
-    return []
+    from foundry.config.settings import get_settings
+    from pathlib import Path
+    
+    settings = get_settings()
+    models_dir = Path(settings.checkpoint_dir) / "models"
+    
+    downloaded = []
+    
+    if models_dir.exists():
+        # Scan for downloaded models
+        for model_dir in models_dir.iterdir():
+            if model_dir.is_dir():
+                # Convert dir name back to model ID
+                model_id = model_dir.name.replace("--", "/")
+                
+                # Find matching catalog entry
+                for catalog_model in MODEL_CATALOG:
+                    if catalog_model.id == model_id:
+                        # Mark as downloaded with local path
+                        downloaded.append(ModelInfo(
+                            **catalog_model.model_dump(exclude={"is_downloaded", "local_path"}),
+                            is_downloaded=True,
+                            local_path=str(model_dir),
+                        ))
+                        break
+    
+    return downloaded
+
+
+@router.post("/{model_id}/set-student")
+async def set_model_as_student(model_id: str) -> dict:
+    """Set a downloaded model as the student (training target)."""
+    from foundry.config.settings import get_settings
+    
+    settings = get_settings()
+    
+    # Verify model is downloaded
+    models_dir = Path(settings.checkpoint_dir) / "models"
+    model_dir_name = model_id.replace("/", "--")
+    model_path = models_dir / model_dir_name
+    
+    if not model_path.exists():
+        raise HTTPException(status_code=404, detail=f"Model {model_id} not found. Download it first.")
+    
+    # Update .env file to set as default model
+    env_updates = [f"FOUNDRY_DEFAULT_MODEL={model_id}"]
+    
+    # Use the same helper from keys.py
+    from foundry.orchestrator.routes.keys import _update_env_file
+    _update_env_file(env_updates)
+    
+    # Clear cache
+    get_settings.cache_clear()
+    
+    return {
+        "status": "success",
+        "message": f"{model_id} set as student model",
+        "model_id": model_id,
+    }
+
+
+@router.post("/{model_id}/set-teacher")
+async def set_model_as_teacher(model_id: str) -> dict:
+    """Set a downloaded model as the teacher (local teacher)."""
+    from foundry.config.settings import get_settings
+    
+    settings = get_settings()
+    
+    # Verify model is downloaded
+    models_dir = Path(settings.checkpoint_dir) / "models"
+    model_dir_name = model_id.replace("/", "--")
+    model_path = models_dir / model_dir_name
+    
+    if not model_path.exists():
+        raise HTTPException(status_code=404, detail=f"Model {model_id} not found. Download it first.")
+    
+    # Update .env file to set as local teacher
+    env_updates = [
+        f"FOUNDRY_TEACHER_PROVIDER=local",
+        f"FOUNDRY_TEACHER_MODEL={model_id}",
+    ]
+    
+    from foundry.orchestrator.routes.keys import _update_env_file
+    _update_env_file(env_updates)
+    
+    # Clear cache
+    get_settings.cache_clear()
+    
+    return {
+        "status": "success",
+        "message": f"{model_id} set as local teacher",
+        "model_id": model_id,
+        "provider": "local",
+    }
 
 
 @router.get("/sizes", response_model=list[dict])

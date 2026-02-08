@@ -51,6 +51,14 @@ export const api = {
       body: JSON.stringify({ model_id: modelId }),
     }),
   getDownloadedModels: () => request<Record<string, unknown>[]>('/models/downloaded'),
+  setModelAsStudent: (modelId: string) =>
+    request<Record<string, unknown>>(`/models/${encodeURIComponent(modelId)}/set-student`, {
+      method: 'POST',
+    }),
+  setModelAsTeacher: (modelId: string) =>
+    request<Record<string, unknown>>(`/models/${encodeURIComponent(modelId)}/set-teacher`, {
+      method: 'POST',
+    }),
   getModelSizes: () => request<Record<string, unknown>[]>('/models/sizes'),
   getModelTags: () => request<string[]>('/models/tags'),
 
