@@ -14,7 +14,8 @@ import {
   KeyIcon,
   ServerIcon,
   BeakerIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline'
 import GlassCard from '../components/GlassCard'
 import { api } from '../hooks/useApi'
@@ -66,6 +67,38 @@ export default function ModelsPage() {
     loadKeys()
     loadProviders()
   }, [])
+
+  // Reload keys when switching to BYOK tab
+  useEffect(() => {
+    if (activeTab === 'byok') {
+      loadKeys()
+      loadCurrentConfigs()
+    }
+  }, [activeTab])
+
+  const loadCurrentConfigs = async () => {
+    try {
+      const [teacher, student] = await Promise.all([
+        api.getCurrentTeacher(),
+        api.getCurrentStudent(),
+      ])
+      
+      // Set teacher config
+      const teacherData = teacher as { provider: string; model: string }
+      if (teacherData.provider) {
+        setSelectedProvider(teacherData.provider)
+        setSelectedTeacherModel(teacherData.model)
+      }
+      
+      // Set student config
+      const studentData = student as { model_id: string }
+      if (studentData.model_id) {
+        setStudentModel(studentData.model_id)
+      }
+    } catch {
+      // Silent fail - configs may not be set yet
+    }
+  }
 
   const loadModels = async () => {
     try {
@@ -155,6 +188,7 @@ export default function ModelsPage() {
         use_local: true,
       })
       toast.success('Student configuration saved')
+      loadKeys() // Refresh key status
     } catch (err) {
       toast.error(`Failed to configure student: ${err instanceof Error ? err.message : 'Unknown error'}`)
     }
@@ -465,25 +499,88 @@ export default function ModelsPage() {
 
             {/* API Key Status */}
             <div className="mt-6 pt-6 border-t border-glass-200">
-              <h4 className="text-sm font-medium text-gray-400 mb-3">Configured Keys</h4>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                  <KeyIcon className="w-4 h-4" />
+                  Configured Keys & Status
+                </h4>
+                <button
+                  onClick={loadKeys}
+                  className="text-xs text-foundry-primary hover:text-foundry-primary/80 flex items-center gap-1 transition-colors"
+                  title="Refresh key status"
+                >
+                  <ArrowPathIcon className="w-3 h-3" />
+                  Refresh
+                </button>
+              </div>
               <div className="space-y-2">
-                {keyStatus.map((key) => (
-                  <div
-                    key={key.provider as string}
-                    className="flex items-center justify-between py-2 px-3 bg-glass-50 rounded-lg"
-                  >
-                    <span className="text-sm text-white capitalize">{key.provider as string}</span>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        key.is_set
-                          ? 'bg-foundry-success/20 text-foundry-success'
-                          : 'bg-foundry-error/20 text-foundry-error'
-                      }`}
+                {keyStatus.length === 0 ? (
+                  <p className="text-sm text-gray-500">Loading key status...</p>
+                ) : (
+                  keyStatus.map((key) => (
+                    <div
+                      key={key.provider as string}
+                      className="flex items-center justify-between py-2.5 px-3 bg-glass-50 rounded-lg border border-glass-100"
                     >
-                      {key.is_set ? (key.masked_key as string) || 'Configured' : 'Not Set'}
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-white capitalize font-medium">
+                          {key.provider as string}
+                        </span>
+                        {(key.provider as string) === 'anthropic' && (
+                          <span className="text-xs text-gray-500">Teacher</span>
+                        )}
+                        {(key.provider as string) === 'openai' && (
+                          <span className="text-xs text-gray-500">Teacher</span>
+                        )}
+                        {(key.provider as string) === 'huggingface' && (
+                          <span className="text-xs text-gray-500">Models</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {key.is_set ? (
+                          <>
+                            <CheckCircleIcon className="w-4 h-4 text-foundry-success" />
+                            <span className="text-xs px-2 py-1 rounded-full bg-foundry-success/20 text-foundry-success font-mono">
+                              {(key.masked_key as string) || 'Configured'}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <InformationCircleIcon className="w-4 h-4 text-foundry-error" />
+                            <span className="text-xs px-2 py-1 rounded-full bg-foundry-error/20 text-foundry-error">
+                              Not Set
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              
+              {/* Current Configuration Summary */}
+              <div className="mt-4 p-3 bg-foundry-primary/5 rounded-lg border border-foundry-primary/20">
+                <h5 className="text-xs font-medium text-foundry-primary mb-2">Active Configuration</h5>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Teacher Provider:</span>
+                    <span className="text-white capitalize">
+                      {providers.find(p => p.id === selectedProvider)?.name || 'Not configured'}
                     </span>
                   </div>
-                ))}
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Teacher Model:</span>
+                    <span className="text-white">
+                      {selectedProviderInfo?.models.find(m => m.id === selectedTeacherModel)?.name || 'Not selected'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Student Model:</span>
+                    <span className="text-white">
+                      {models.find(m => m.id === studentModel)?.name || 'Not selected'}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </GlassCard>
