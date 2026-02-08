@@ -169,9 +169,8 @@ async def get_current_teacher() -> TeacherConfig:
 
 @router.post("/teacher/configure")
 async def configure_teacher(config: TeacherConfig) -> dict:
-    """Configure teacher model (BYOK)."""
-    # TODO: Persist configuration to .env or database
-    # For now, validate and return success
+    """Configure teacher model (BYOK) - persists to .env file."""
+    from foundry.config.settings import get_settings
     
     valid_providers = [p.id for p in TEACHER_PROVIDERS]
     if config.provider not in valid_providers:
@@ -188,8 +187,25 @@ async def configure_teacher(config: TeacherConfig) -> dict:
             detail=f"Provider {config.provider} requires an API key"
         )
     
-    # TODO: Actually save the configuration
-    # This would update .env file or database
+    # Persist to .env file
+    env_updates = [
+        f"FOUNDRY_TEACHER_PROVIDER={config.provider}",
+        f"FOUNDRY_TEACHER_MODEL={config.model}",
+    ]
+    
+    # Save API key if provided
+    if config.api_key:
+        secret = config.api_key.get_secret_value()
+        if config.provider == "anthropic":
+            env_updates.append(f"ANTHROPIC_API_KEY={secret}")
+        elif config.provider == "openai":
+            env_updates.append(f"OPENAI_API_KEY={secret}")
+    
+    # Write to .env file
+    _update_env_file(env_updates)
+    
+    # Clear settings cache to reload
+    get_settings.cache_clear()
     
     return {
         "status": "success",
@@ -214,8 +230,17 @@ async def get_current_student() -> StudentConfig:
 
 @router.post("/student/configure")
 async def configure_student(config: StudentConfig) -> dict:
-    """Configure student model (BYOK)."""
-    # TODO: Persist configuration
+    """Configure student model (BYOK) - persists to .env file."""
+    # Persist to .env file
+    env_updates = [
+        f"FOUNDRY_DEFAULT_MODEL={config.model_id}",
+    ]
+    
+    _update_env_file(env_updates)
+    
+    # Clear settings cache
+    from foundry.config.settings import get_settings
+    get_settings.cache_clear()
     
     return {
         "status": "success",
@@ -227,8 +252,15 @@ async def configure_student(config: StudentConfig) -> dict:
 
 @router.post("/huggingface/token")
 async def set_huggingface_token(token: SecretStr) -> dict:
-    """Set HuggingFace access token for gated models."""
-    # TODO: Persist token securely
+    """Set HuggingFace access token for gated models - persists to .env file."""
+    secret = token.get_secret_value()
+    
+    # Persist to .env file
+    env_updates = [
+        f"HF_TOKEN={secret}",
+    ]
+    
+    _update_env_file(env_updates)
     
     return {
         "status": "success",
@@ -241,3 +273,57 @@ def _mask_key(key: str) -> str:
     if len(key) <= 8:
         return "****"
     return f"{key[:4]}...{key[-4:]}"
+
+
+def _update_env_file(updates: list[str]) -> None:
+    """Update or add entries to the .env file.
+    
+    Args:
+        updates: List of KEY=VALUE strings to update
+    """
+    env_path = ".env"
+    
+    # Read existing content
+    existing_lines = []
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            existing_lines = f.read().splitlines()
+    
+    # Parse updates
+    update_dict = {}
+    for update in updates:
+        if "=" in update:
+            key, value = update.split("=", 1)
+            update_dict[key] = value
+    
+    # Update existing lines or add new ones
+    updated_keys = set()
+    new_lines = []
+    
+    for line in existing_lines:
+        stripped = line.strip()
+        # Skip empty lines and comments
+        if not stripped or stripped.startswith("#"):
+            new_lines.append(line)
+            continue
+        
+        # Check if this line should be updated
+        if "=" in stripped:
+            key = stripped.split("=", 1)[0]
+            if key in update_dict:
+                new_lines.append(f"{key}={update_dict[key]}")
+                updated_keys.add(key)
+                continue
+        
+        new_lines.append(line)
+    
+    # Add any new keys that weren't updated
+    for key, value in update_dict.items():
+        if key not in updated_keys:
+            new_lines.append(f"{key}={value}")
+    
+    # Write back to file
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(new_lines))
+        if new_lines:
+            f.write("\n")

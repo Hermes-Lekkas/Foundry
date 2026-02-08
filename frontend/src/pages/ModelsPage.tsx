@@ -13,7 +13,8 @@ import {
   CpuChipIcon,
   KeyIcon,
   ServerIcon,
-  BeakerIcon
+  BeakerIcon,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline'
 import GlassCard from '../components/GlassCard'
 import { api } from '../hooks/useApi'
@@ -357,6 +358,38 @@ export default function ModelsPage() {
                     </option>
                   ))}
                 </select>
+                {!selectedProviderInfo && providers.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium text-gray-400 mb-3">All Available Providers</h4>
+                    <div className="space-y-3">
+                      {providers.map((provider) => (
+                        <div 
+                          key={provider.id}
+                          className="p-3 bg-glass-50 rounded-lg border border-glass-200"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-white">{provider.name}</span>
+                            {provider.requires_api_key ? (
+                              <span className="text-xs px-2 py-0.5 bg-foundry-warning/20 text-foundry-warning rounded-full">
+                                API Key Required
+                              </span>
+                            ) : (
+                              <span className="text-xs px-2 py-0.5 bg-foundry-success/20 text-foundry-success rounded-full">
+                                Free / Local
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-400 mb-2">{provider.description}</p>
+                          <div className="text-xs text-gray-500">
+                            <span className="font-medium">Models:</span>{' '}
+                            {provider.models.map(m => m.name).join(', ')}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {selectedProviderInfo && (
                   <p className="text-xs text-gray-500 mt-2">{selectedProviderInfo.description}</p>
                 )}
@@ -364,23 +397,34 @@ export default function ModelsPage() {
 
               {selectedProviderInfo && (
                 <>
+                  {/* Available Models for this Provider */}
                   <div>
                     <label className="block text-sm text-gray-400 mb-2">
                       <BeakerIcon className="w-4 h-4 inline mr-1" />
-                      Model
+                      Available Models ({selectedProviderInfo.models.length})
                     </label>
-                    <select
-                      value={selectedTeacherModel}
-                      onChange={(e) => setSelectedTeacherModel(e.target.value)}
-                      className="w-full px-4 py-2 bg-foundry-surface/50 rounded-lg border border-glass-200 text-white focus:outline-none focus:border-foundry-primary/50"
-                    >
-                      <option value="">Select a model...</option>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
                       {selectedProviderInfo.models.map((model) => (
-                        <option key={model.id} value={model.id}>
-                          {model.name}
-                        </option>
+                        <div
+                          key={model.id}
+                          onClick={() => setSelectedTeacherModel(model.id)}
+                          className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                            selectedTeacherModel === model.id
+                              ? 'bg-foundry-primary/20 border border-foundry-primary/50'
+                              : 'bg-glass-50 border border-glass-200 hover:bg-glass-100'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-white">{model.name}</span>
+                            {selectedTeacherModel === model.id && (
+                              <CheckCircleIcon className="w-4 h-4 text-foundry-primary" />
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1">{model.description}</p>
+                          <p className="text-xs text-gray-500 font-mono mt-1">{model.id}</p>
+                        </div>
                       ))}
-                    </select>
+                    </div>
                   </div>
 
                   {selectedProviderInfo.requires_api_key && (
@@ -393,20 +437,27 @@ export default function ModelsPage() {
                         type="password"
                         value={apiKey}
                         onChange={(e) => setApiKey(e.target.value)}
-                        placeholder="sk-..."
+                        placeholder={selectedProviderInfo.id === 'anthropic' ? 'sk-ant-...' : selectedProviderInfo.id === 'openai' ? 'sk-...' : 'API key...'}
                         className="w-full px-4 py-2 bg-foundry-surface/50 rounded-lg border border-glass-200 text-white placeholder-gray-500 focus:outline-none focus:border-foundry-primary/50"
                       />
                       <p className="text-xs text-gray-500 mt-1">
-                        Your API key is stored securely and never shared.
+                        Your API key is stored securely in .env and never shared.
                       </p>
                     </div>
                   )}
 
                   <button
                     onClick={handleConfigureTeacher}
-                    className="w-full py-2 bg-foundry-primary hover:bg-foundry-primary/80 rounded-lg text-white font-medium transition-colors"
+                    disabled={!selectedTeacherModel}
+                    className={`w-full py-2 rounded-lg text-white font-medium transition-colors ${
+                      selectedTeacherModel
+                        ? 'bg-foundry-primary hover:bg-foundry-primary/80'
+                        : 'bg-gray-600 cursor-not-allowed'
+                    }`}
                   >
-                    Save Teacher Configuration
+                    {selectedTeacherModel 
+                      ? `Save: ${selectedProviderInfo.models.find(m => m.id === selectedTeacherModel)?.name || selectedTeacherModel}`
+                      : 'Select a model above'}
                   </button>
                 </>
               )}
