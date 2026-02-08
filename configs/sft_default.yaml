@@ -1,0 +1,33 @@
+# SFT Default Configuration
+# Standard supervised fine-tuning for general instruction following
+
+model_name: unsloth/Qwen2.5-0.5B
+trainer_type: sft
+
+# Dataset
+dataset_path: null  # Will be set from synthesis job
+dataset_id: null    # Alternative: reference a dataset by ID
+
+# Training hyperparameters
+num_epochs: 3
+batch_size: null    # Auto-detected from VRAM profile
+learning_rate: 2.0e-4
+max_seq_length: 2048
+gradient_accumulation_steps: 4
+gradient_checkpointing: true
+warmup_ratio: 0.03
+
+# LoRA configuration
+lora_r: 16
+lora_alpha: 16
+
+# Quantization
+quantization: 4bit  # 4bit, 4bit-nf4, or null for full precision
+
+# Output
+output_dir: ./checkpoints/sft_default
+save_steps: 200
+logging_steps: 1
+
+# Hardware
+device: auto  # auto, cuda, cpu

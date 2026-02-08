@@ -13,6 +13,7 @@ import DataPage from './pages/DataPage'
 import TrainingPage from './pages/TrainingPage'
 import EvalPage from './pages/EvalPage'
 import ConfigPage from './pages/ConfigPage'
+import ModelsPage from './pages/ModelsPage'
 import { useWebSocket } from './hooks/useWebSocket'
 
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
         <PulsePrism />
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/models" element={<ModelsPage />} />
           <Route path="/data" element={<DataPage />} />
           <Route path="/training" element={<TrainingPage />} />
           <Route path="/eval" element={<EvalPage />} />

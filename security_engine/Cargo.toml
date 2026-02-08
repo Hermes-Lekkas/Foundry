@@ -1,0 +1,50 @@
+[package]
+name = "foundry_security"
+version = "0.1.0"
+edition = "2026"
+authors = ["Hermes Lekkas"]
+description = "High-performance security engine for The Foundry"
+license = "Proprietary"
+
+[lib]
+name = "foundry_security"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pyo3 = { version = "0.20", features = ["extension-module"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+log = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
+sha2 = "0.10"
+hex = "0.4"
+regex = "1.10"
+once_cell = "1.19"
+
+# Platform-specific dependencies
+[target.'cfg(target_os = "linux")'.dependencies]
+nix = { version = "0.27", features = ["process", "sched", "mount", "quota"] }
+libc = "0.2"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.52", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_JobObjects",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Threading",
+    "Win32_System_Diagnostics",
+    "Win32_Storage_FileSystem",
+    "Win32_System_IO",
+] }
+winapi = { version = "0.3", features = ["processthreadsapi", "jobapi2", "handleapi"] }
+
+[dev-dependencies]
+tempfile = "3.9"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"

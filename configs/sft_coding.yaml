@@ -1,0 +1,33 @@
+# SFT Coding Configuration
+# Optimized for code generation and software engineering tasks
+
+model_name: unsloth/Qwen2.5-1.5B-Coder
+trainer_type: sft
+
+# Dataset (use coding constitution synthesized data)
+dataset_path: null
+dataset_id: null
+
+# Training hyperparameters
+num_epochs: 3
+batch_size: null
+learning_rate: 1.0e-4  # Slightly lower for coding tasks
+max_seq_length: 4096   # Longer sequences for code context
+gradient_accumulation_steps: 4
+gradient_checkpointing: true
+warmup_ratio: 0.05
+
+# LoRA configuration (target more layers for coding)
+lora_r: 32
+lora_alpha: 32
+
+# Quantization
+quantization: 4bit
+
+# Output
+output_dir: ./checkpoints/sft_coding
+save_steps: 200
+logging_steps: 1
+
+# Hardware
+device: auto

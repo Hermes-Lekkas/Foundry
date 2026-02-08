@@ -72,12 +72,16 @@ def create_app() -> FastAPI:
     from foundry.orchestrator.routes.data import router as data_router
     from foundry.orchestrator.routes.eval import router as eval_router
     from foundry.orchestrator.routes.health import router as health_router
+    from foundry.orchestrator.routes.keys import router as keys_router
+    from foundry.orchestrator.routes.models import router as models_router
     from foundry.orchestrator.routes.training import router as training_router
     from foundry.orchestrator.routes.ws import router as ws_router
 
     app.include_router(health_router, prefix="/api", tags=["health"])
     app.include_router(config_router, prefix="/api/config", tags=["config"])
     app.include_router(data_router, prefix="/api/data", tags=["data"])
+    app.include_router(models_router, prefix="/api/models", tags=["models"])
+    app.include_router(keys_router, prefix="/api/keys", tags=["keys"])
     app.include_router(training_router, prefix="/api/training", tags=["training"])
     app.include_router(eval_router, prefix="/api/eval", tags=["eval"])
     app.include_router(ws_router, tags=["websocket"])

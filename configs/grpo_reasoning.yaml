@@ -1,0 +1,38 @@
+# GRPO Reasoning Configuration
+# Group Relative Policy Optimization with verifiable rewards
+
+model_name: unsloth/Qwen2.5-0.5B
+trainer_type: grpo
+
+# Dataset (should contain prompts with expected reasoning chains)
+dataset_path: null
+dataset_id: null
+
+# Training hyperparameters
+num_epochs: 1
+batch_size: null    # Auto-detected from VRAM profile (typically smaller for GRPO)
+learning_rate: 5.0e-6
+max_seq_length: 2048
+gradient_accumulation_steps: 8
+gradient_checkpointing: true
+
+# GRPO-specific
+num_generations: 4  # Number of completions per prompt for group comparison
+
+# Reward function weights (alpha * hard_reward + (1-alpha) * soft_reward)
+reward_alpha: 0.7   # Weight for hard (sandbox-verified) rewards
+
+# LoRA configuration
+lora_r: 16
+lora_alpha: 16
+
+# Quantization
+quantization: 4bit
+
+# Output
+output_dir: ./checkpoints/grpo_reasoning
+save_steps: 100
+logging_steps: 1
+
+# Hardware
+device: auto

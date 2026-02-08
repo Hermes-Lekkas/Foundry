@@ -38,6 +38,43 @@ export const api = {
   listConstitutions: () =>
     request<{ name: string; path: string }[]>('/data/constitutions'),
 
+  // Models
+  getModelCatalog: (params?: { size?: string; tag?: string; search?: string }) => {
+    const query = params ? new URLSearchParams(params).toString() : ''
+    return request<Record<string, unknown>[]>(`/models/catalog${query ? '?' + query : ''}`)
+  },
+  getModelDetails: (modelId: string) =>
+    request<Record<string, unknown>>(`/models/catalog/${encodeURIComponent(modelId)}`),
+  downloadModel: (modelId: string) =>
+    request<{ job_id: string; status: string; message: string }>('/models/download', {
+      method: 'POST',
+      body: JSON.stringify({ model_id: modelId }),
+    }),
+  getDownloadedModels: () => request<Record<string, unknown>[]>('/models/downloaded'),
+  getModelSizes: () => request<Record<string, unknown>[]>('/models/sizes'),
+  getModelTags: () => request<string[]>('/models/tags'),
+
+  // Keys / BYOK
+  getKeyStatus: () => request<Record<string, unknown>[]>('/keys/status'),
+  getTeacherProviders: () => request<Record<string, unknown>[]>('/keys/providers'),
+  getCurrentTeacher: () => request<Record<string, unknown>>('/keys/teacher/current'),
+  configureTeacher: (body: Record<string, unknown>) =>
+    request<Record<string, unknown>>('/keys/teacher/configure', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  getCurrentStudent: () => request<Record<string, unknown>>('/keys/student/current'),
+  configureStudent: (body: Record<string, unknown>) =>
+    request<Record<string, unknown>>('/keys/student/configure', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  setHuggingFaceToken: (token: string) =>
+    request<Record<string, unknown>>('/keys/huggingface/token', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
+
   // Training
   startTraining: (body: Record<string, unknown>) =>
     request<{ job_id: string }>('/training/start', {

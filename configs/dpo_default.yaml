@@ -1,0 +1,35 @@
+# DPO Default Configuration
+# Direct Preference Optimization from RL-CAI generated pairs
+
+model_name: unsloth/Qwen2.5-0.5B
+trainer_type: dpo
+
+# Dataset (should contain chosen/rejected pairs)
+dataset_path: null
+dataset_id: null
+
+# Training hyperparameters
+num_epochs: 1
+batch_size: null
+learning_rate: 5.0e-5
+max_seq_length: 2048
+gradient_accumulation_steps: 8
+gradient_checkpointing: true
+
+# DPO-specific
+beta: 0.1  # Temperature parameter for DPO loss
+
+# LoRA configuration
+lora_r: 16
+lora_alpha: 16
+
+# Quantization
+quantization: 4bit
+
+# Output
+output_dir: ./checkpoints/dpo_default
+save_steps: 200
+logging_steps: 1
+
+# Hardware
+device: auto
